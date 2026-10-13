@@ -1,25 +1,46 @@
-
 import random
+import re
 
-def generar_curp_apocrifa(nombre, fecha_yyyy_mm_dd, sexo):
-    """
-    Toma datos básicos y devuelve 18 caracteres de pura ficción burocrática.
-    """
-    nombre = nombre.strip().upper()
-    sexo = sexo.strip().upper()
-    
-    if not nombre or nombre == "NOMBRE COMPLETO...":
-        raise ValueError("Se requiere un nombre válido para procesar la identidad.")
+def _primera_vocal_interna(palabra):
+    match = re.search(r'[AEIOU]', palabra[1:])
+    return match.group(0) if match else 'X'
 
-    partes = nombre.split()
-    paterno = partes[0] if len(partes) > 0 else "X"
-    materno = partes[1] if len(partes) > 1 else "X"
-    nombres = partes[2] if len(partes) > 2 else "X"
+def _primera_consonante_interna(palabra):
+    match = re.search(r'[BCDFGHJKLMNÑPQRSTVWXYZ]', palabra[1:])
+    return match.group(0) if match else 'X'
+
+def generar_curp_realista(nombres, paterno, materno, fecha_yyyy_mm_dd, sexo, clave_estado):
+    nombres = nombres.strip().upper() if nombres else "X"
+    paterno = paterno.strip().upper() if paterno else "X"
+    materno = materno.strip().upper() if materno else "X"
     
-    letras = (paterno[:2] + materno[:1] + nombres[:1]).ljust(4, 'X').upper()
-    fecha_curp = fecha_yyyy_mm_dd[2:4] + fecha_yyyy_mm_dd[5:7] + fecha_yyyy_mm_dd[8:10] if len(fecha_yyyy_mm_dd) == 10 else "000000"
-    sexo_letra = "M" if sexo == "MUJER" else "H" if sexo == "HOMBRE" else "X"
+    # 1. Letras iniciales (Primera del paterno, primera vocal interna del paterno, primera materno, primera nombre)
+    l1 = paterno[0]
+    l2 = _primera_vocal_interna(paterno)
+    l3 = materno[0]
+    l4 = nombres[0]
     
-    relleno = "GT" + "X" + "X" + "X" + str(random.randint(10, 99))
+    # 2. Fecha YYMMDD
+    if len(fecha_yyyy_mm_dd) == 10:
+        fecha = fecha_yyyy_mm_dd[2:4] + fecha_yyyy_mm_dd[5:7] + fecha_yyyy_mm_dd[8:10]
+    else:
+        fecha = "000000"
+        
+    # 3. Sexo
+    s = "M" if sexo.upper() == "MUJER" else "H"
     
-    return f"{letras}{fecha_curp}{sexo_letra}{relleno}"
+    # 4. Estado (Acepta la clave de 2 letras, ej: GT)
+    est = clave_estado.strip().upper()
+    if len(est) != 2: 
+        est = "NE" # Nacido en el extranjero
+        
+    # 5. Consonantes internas
+    c1 = _primera_consonante_interna(paterno)
+    c2 = _primera_consonante_interna(materno)
+    c3 = _primera_consonante_interna(nombres)
+    
+    # 6. Homoclave y dígito verificador aleatorios (la firma de que sigue siendo falsa)
+    homoclave = random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    digito = str(random.randint(0, 9))
+    
+    return f"{l1}{l2}{l3}{l4}{fecha}{s}{est}{c1}{c2}{c3}{homoclave}{digito}"
